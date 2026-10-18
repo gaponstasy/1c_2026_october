@@ -156,20 +156,21 @@ struct Mine {
       Vertex* next = vertexes[e->end];
       size_t next_i = next->i;
 
-      if (edges_state[e->i] != ok || ((mask_go & (1 << next_i)) != 0)) { continue; }
+      if (edges_state[e->i] != ok || ((mask_go & (1u << next_i)) != 0)) { continue; }
 
-      mask_go |= (1 << next_i);
+      mask_go |= (1u << next_i);
       if (move(e)) {
         if (go(target)) {
           return true;
         }
-      }
 
-      move(edges[next_i][idx_vert]);
+        move(edges[next_i][idx_vert]);
+      }
     }
     return false;
   }
 
+  // делаем move, меняем vert_now
   bool move(Edge* edge) {
     std::cout << "MOVE " << edge->name << ' ' << edge->start << std::endl;
     std::string status;
@@ -188,6 +189,7 @@ struct Mine {
     return status == "OK";
   }
 
+  // очищаем новое ребро, открываются новые возможности
   void clear(Edge* edge) {
     std::cout << "CLEAR " << edge->name << std::endl;
     std::string status;
@@ -200,6 +202,7 @@ struct Mine {
 
   void end() { std::cout << "END" << std::endl; }
 
+  // смотрим на ситуацию из новой вершины
   void look(Vertex* vert) {
     std::cout << "LOOK " << vert->name << std::endl;
     size_t idx_vert = vert->i;
@@ -211,6 +214,7 @@ struct Mine {
 
       std::cin >> flag;
       
+      // меняем состояние ребра
       if (flag == "OK") {
         edges_state[edge->i] = ok;
       } else {
@@ -219,6 +223,7 @@ struct Mine {
     }
   }
 
+  // считаем мат.ожидание для конкретной вершины
   double im_look(Vertex* vert) {
     size_t idx_vert = vert->i;
     if ((im_mask & (1u << idx_vert)) != 0) { return 0; }
@@ -226,6 +231,7 @@ struct Mine {
     double res = vert->cost;
     im_mask |= (1u << idx_vert);
 
+    // проходимся по всем ребрам и учитываем новые вершины
     for (size_t i = 0; i < count_vertex; ++i) {
       Edge* e = edges[idx_vert][i];
       if (e == nullptr) continue;
@@ -236,7 +242,7 @@ struct Mine {
       } else if (edges_state[e->i] == broken) {
         res += std::max(0.0, next_ev - day_cost);
       } else {
-        res += e->p * next_ev;
+        res +=  e->p * next_ev + (1.0 - e->p) * std::max(0.0, next_ev - day_cost);
       }
     }
 
@@ -254,6 +260,7 @@ struct Mine {
 
     look(vert);
 
+    // проходимся по всем новым вершинам и запускаем из них бесплатный шаг
     for (size_t i = 0; i < count_vertex; ++i) {
       Edge* e = edges[idx_vert][i];
       if (e == nullptr) continue;
@@ -270,6 +277,7 @@ struct Mine {
         continue;
       }
 
+      // пересчитываем mask_near, так как кто-то мог достигнуться
       mask_near &= ~(1u << next_i);
 
       if ((mask & (1u << next_i)) != 0) {
@@ -278,9 +286,8 @@ struct Mine {
 
       if (move(e)) {
         step_free(next);
+        move(edges[next->i][vert->i]);
       }
-
-      move(edges[next->i][vert->i]);
     }
   }
 };
